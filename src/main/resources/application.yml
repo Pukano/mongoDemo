@@ -1,0 +1,16 @@
+#Global configuration
+spring.application.name: MongoDemo
+
+#Tomcat configuration
+server.port: 9000
+
+spring.aop.proxy-target-class: true
+
+#Log level configuration
+logging.level.root: ERROR
+logging.level.mongo.MongoDemo: INFO
+logging.level.org.springframework.data.mongodb: INFO
+logging.level.org.springframework.boot.web.embedded.tomcat: INFO
+
+#Db configuration
+#spring.data.mongodb.uri: mongodb://localhost:27017/myMongoDb
