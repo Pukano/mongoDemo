@@ -1,15 +1,15 @@
 package mongo.MongoDemo.service;
 
-import mongo.MongoDemo.dto.User;
+import mongo.MongoDemo.document.UserDocument;
 import java.util.Optional;
 
 public interface UserService {
-    public Optional<User> getUser(final Long id);
+    public Optional<UserDocument> getUser(final Long id);
 
-    public Iterable<User> getUsers();
+    public Iterable<UserDocument> getUsers();
 
     public void deleteUser(final Long id);
 
-    public User saveUser(User user);
+    public UserDocument saveUser(UserDocument user);
 
 }

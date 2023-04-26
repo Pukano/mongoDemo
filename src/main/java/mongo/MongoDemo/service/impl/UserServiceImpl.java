@@ -1,6 +1,6 @@
 package mongo.MongoDemo.service.impl;
 
-import mongo.MongoDemo.dto.User;
+import mongo.MongoDemo.document.UserDocument;
 import mongo.MongoDemo.repository.UserRepository;
 import mongo.MongoDemo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +13,11 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
-    public Optional<User> getUser(final Long id) {
+    public Optional<UserDocument> getUser(final Long id) {
         return userRepository.findById(id);
     }
 
-    public Iterable<User> getUsers() {
+    public Iterable<UserDocument> getUsers() {
         return userRepository.findAll();
     }
 
@@ -25,10 +25,10 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
-    public User saveUser(User user) {
-        Optional<User> usr = userRepository.findById(user.id());
+    public UserDocument saveUser(UserDocument user) {
+        Optional<UserDocument> usr = userRepository.findById(user.id());
         if (usr.isPresent()) {
-            User currentUser = usr.get();
+            UserDocument currentUser = usr.get();
 
             String firstName = user.firstName();
             if (firstName != null) {

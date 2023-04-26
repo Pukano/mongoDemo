@@ -1,6 +1,6 @@
 package mongo.MongoDemo.controller;
 
-import mongo.MongoDemo.dto.User;
+import mongo.MongoDemo.document.UserDocument;
 import mongo.MongoDemo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -14,19 +14,19 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/user")
-    public User createUser(@RequestBody User user) {
+    public UserDocument createUser(@RequestBody UserDocument user) {
         return userService.saveUser(user);
     }
     @GetMapping("/user/{id}")
-    public Optional<User> getUser(@PathVariable("id") final Long id) {
+    public Optional<UserDocument> getUser(@PathVariable("id") final Long id) {
         return userService.getUser(id);
     }
     @GetMapping("/users")
-    public Iterable<User> getUsers() {
+    public Iterable<UserDocument> getUsers() {
         return userService.getUsers();
     }
     @PutMapping("/user/{id}")
-    public User updateUser(@PathVariable("id") final Long id, @RequestBody User user) {
+    public UserDocument updateUser(@PathVariable("id") final Long id, @RequestBody UserDocument user) {
         return userService.saveUser(user);
     }
     @DeleteMapping("/delete")
