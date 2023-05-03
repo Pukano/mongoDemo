@@ -1,11 +1,12 @@
 package mongo.MongoDemo.controller;
 
-import mongo.MongoDemo.document.UserDocument;
+import mongo.MongoDemo.dto.UserDto;
+import mongo.MongoDemo.dto.UserListResponse;
+import mongo.MongoDemo.dto.UserRequest;
 import mongo.MongoDemo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 public class UserController {
@@ -14,23 +15,27 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/user")
-    public UserDocument createUser(@RequestBody UserDocument user) {
-        return userService.saveUser(user);
+    public ResponseEntity<UserDto> createUser(@RequestBody UserRequest user) {
+        return ResponseEntity.ok(userService.saveUser( user));
     }
+
     @GetMapping("/user/{id}")
-    public Optional<UserDocument> getUser(@PathVariable("id") final Long id) {
-        return userService.getUser(id);
+    public ResponseEntity<UserDto> getUser(@PathVariable("id") final String id) {
+        return ResponseEntity.ok(userService.getUser(id));
     }
+
     @GetMapping("/users")
-    public Iterable<UserDocument> getUsers() {
-        return userService.getUsers();
+    public ResponseEntity<UserListResponse> getUsers() {
+        return ResponseEntity.ok(userService.getUsers());
     }
+
     @PutMapping("/user/{id}")
-    public UserDocument updateUser(@PathVariable("id") final Long id, @RequestBody UserDocument user) {
-        return userService.saveUser(user);
+    public ResponseEntity<UserDto> updateUser(@PathVariable("id") final String id, @RequestBody UserRequest user) {
+        return ResponseEntity.ok(userService.updateUser(id, user));
     }
+
     @DeleteMapping("/delete")
-    public void deleteUser(@PathVariable("id") final Long id) {
+    public void deleteUser(@PathVariable("id") final String id) {
         userService.deleteUser(id);
     }
 

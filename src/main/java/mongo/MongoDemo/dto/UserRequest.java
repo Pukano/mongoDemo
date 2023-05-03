@@ -1,9 +1,8 @@
 package mongo.MongoDemo.dto;
 
-public record UserDto(
-       String id,
+public record UserRequest(
        String firstName,
        String lastName,
-       String email) {
-
+       String email,
+       String password) {
 }
