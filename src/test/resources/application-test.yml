@@ -1,0 +1,16 @@
+#Global configuration
+spring:
+    application.name: MongoDemo
+    aop.proxy-target-class: true
+#Tomcat configuration
+server.port: 9000
+
+#Log level configuration
+logging:
+    level:
+        root: ERROR
+        mongo.MongoDemo: INFO
+        org:
+            springframework:
+                data.mongodb: INFO
+                boot.web.embedded.tomcat: INFO
