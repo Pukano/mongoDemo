@@ -4,6 +4,7 @@ import mongo.MongoDemo.document.UserDocument;
 import mongo.MongoDemo.dto.UserDto;
 import mongo.MongoDemo.dto.UserListResponse;
 import mongo.MongoDemo.dto.UserRequest;
+import mongo.MongoDemo.exception.MongoDemoException;
 import mongo.MongoDemo.mapper.UserMapper;
 import mongo.MongoDemo.repository.UserRepository;
 import mongo.MongoDemo.service.UserService;
@@ -24,7 +25,7 @@ public class UserServiceImpl implements UserService {
 
     public UserDto getUser(final String id) {
         final UserDocument userDocument = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("user not found"));
+                .orElseThrow(() -> new MongoDemoException("user not found", "c01"));
         return userMapper.toDto(userDocument);
     }
 
@@ -64,7 +65,7 @@ public class UserServiceImpl implements UserService {
             final UserDocument saved = userRepository.save(currentUser);
             return userMapper.toDto(saved);
         } else {
-            return null;
+            throw new MongoDemoException("user with ID:" + id + " doesn't exists", "c02");
         }
     }
 
