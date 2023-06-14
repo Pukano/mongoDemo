@@ -7,6 +7,7 @@ public record ServerResponse<T>(T payload, CustomError error) {
     public boolean isOk(){ return error != null;}
 
     public static <T> ServerResponse<T> ok(T payload) { return new ServerResponse<>(payload, null);}
+    public static ServerResponse<Void> ok() { return new ServerResponse<>(null, null);}
 
     public static ServerResponse<Void> error(String message, String code){ return new ServerResponse<>(null, new CustomError(message, code));}
 

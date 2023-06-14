@@ -1,4 +1,4 @@
-package kafka;
+package mongo.MongoDemo.service.impl;
 
 import mongo.MongoDemo.configuration.KafkaConfiguration;
 import mongo.MongoDemo.dto.UserEvent;

@@ -1,4 +1,4 @@
-package config;
+package mongo.MongoDemo.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.serialization.StringSerializer;

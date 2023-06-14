@@ -1,7 +1,8 @@
 package mongo.MongoDemo;
 
-import kafka.MongoResourcesProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import mongo.MongoDemo.dto.*;
+import mongo.MongoDemo.service.impl.MongoResourcesProducer;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
@@ -10,13 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.*;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.testcontainers.containers.KafkaContainer;
@@ -25,6 +24,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
+
 
 import java.util.stream.Stream;
 
@@ -48,6 +48,9 @@ public class MongoDemoApplicationTests {
     TestRestTemplate restTemplate;
     @Autowired
     ApplicationContext applicationContext;
+
+    @Autowired
+    ObjectMapper objectMapper;
     @Autowired
     MongoResourcesProducer mongoResourcesProducer;
 
@@ -55,6 +58,7 @@ public class MongoDemoApplicationTests {
     public static void setUp() {
         System.setProperty("embedded.mongodb.started.wait.time", "60000");
     }
+
     @Test
     @Order(1)
     //basic test
@@ -67,37 +71,84 @@ public class MongoDemoApplicationTests {
 // create user and get all stored
     void getSaveMessages() {
         final UserRequest request = new UserRequest("Adam", "Petrovcak", "apor@sdasd.sk", "pass123");
-        final ParameterizedTypeReference<ServerResponse<UserDto>> responseType = new ParameterizedTypeReference<ServerResponse<UserDto>>() {};
+        final ParameterizedTypeReference<ServerResponse<UserDto>> responseType = new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+        };
 
-        final ServerResponse<UserDto> responseCreate = restTemplate.exchange("/user", HttpMethod.POST, new HttpEntity<>(request), responseType).getBody();
+        //final ServerResponse<UserDto> responseCreate = restTemplate.exchange("/user", HttpMethod.POST, new HttpEntity<>(request), responseType).getBody();
+        final ServerResponse<UserDto> responseObject = restTemplate.exchange("/user", HttpMethod.POST,
+                new HttpEntity<>(request),
+                responseType).getBody();
 
-        assertNotNull(responseCreate.payload());
-        assertNotNull(responseCreate.payload().id());
-        assertEquals("Adam", responseCreate.payload().firstName());
+        assertNotNull(responseObject.payload());
+        assertNotNull(responseObject.payload().id());
+        assertEquals("Adam", responseObject.payload().firstName());
     }
+
     @Test
     @Order(3)
 // create user and get all stored
     void kafkaSaveMessages() {
+        //create user kafka OR REST
         final UserRequest request = new UserRequest("Adam", "Petrovcak", "apor@sdasd.sk", "pass123");
-        final UserEvent createUserEvent =  new UserEvent(EventType.CREATE_USER, request, null);
+        final UserEvent createUserEvent = new UserEvent(EventType.CREATE_USER, request, null);
         mongoResourcesProducer.send(createUserEvent);
-        //get stored user
 
-        /*final ParameterizedTypeReference<ServerResponse<UserDto>> responseType = new ParameterizedTypeReference<ServerResponse<UserDto>>() {};
+        //    get stored users
+        ServerResponse<UserListResponse> responseGetAll = restTemplate.exchange("/users", HttpMethod.GET, null, new ParameterizedTypeReference<ServerResponse<UserListResponse>>() {
+        }).getBody();
+        assertNotNull(responseGetAll);
+        assertNotNull(responseGetAll.payload());
+        assertEquals(1, responseGetAll.payload().users().size());
+        assertEquals("Petrovcak", responseGetAll.payload().users().get(0).lastName());
 
-        final ServerResponse<UserDto> responseCreate = restTemplate.exchange("/user", HttpMethod.POST, new HttpEntity<>(request), responseType).getBody();
+        //find created user by kafka (REST call)
+        String userId = responseGetAll.payload().users().get(0).id();
 
+        // Retrieve the created user by ID
+        ServerResponse<UserDto> getUserResponse = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
+                new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+                }, userId).getBody();
+        assertNotNull(getUserResponse);
+        assertNotNull(getUserResponse.payload());
+        assertEquals("Adam", getUserResponse.payload().firstName());
+
+        //update user REST call
+        final UserRequest updateRequest = new UserRequest("Joe", "Doe", "jdoe@sdasd.sk", "pass321");
+        final ParameterizedTypeReference<ServerResponse<UserDto>> responseType = new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+        };
+        final ServerResponse<UserDto> responseCreate = restTemplate.exchange("/user/{id}", HttpMethod.PUT, new HttpEntity<>(updateRequest), responseType, userId).getBody();
+        assertNotNull(responseCreate);
         assertNotNull(responseCreate.payload());
-        assertNotNull(responseCreate.payload().id());
-        assertEquals("Adam", responseCreate.payload().firstName());*/
+        assertEquals("Joe", responseCreate.payload().firstName());
+
+        //get user by id REST
+        ServerResponse<UserDto> getUserById = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
+                new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+                }, userId).getBody();
+        assertNotNull(getUserById);
+        assertNotNull(getUserById.payload());
+        assertEquals("Doe", getUserById.payload().lastName());
+        //delete user by id KAFKA OR REST
+//        ServerResponse<UserDto> deleteUser = restTemplate.exchange("/user/{id}", HttpMethod.DELETE, null,
+//                new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+//                }, userId).getBody();
+        final UserEvent deleteUserEvent = new UserEvent(EventType.DELETE_USER, null, userId);
+        mongoResourcesProducer.send(deleteUserEvent);
+
+        //get users and check if deleted
+        ServerResponse<UserDto> getDeleteUser = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
+                new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+                }, userId).getBody();
+
+    // Check if the response status is Not Found
+        assertEquals("user not found", getDeleteUser.error().message());
     }
 
     static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         static int DOCKER_EXPOSED_MONGO_PORT = 27017;
-         static final int DOCKER_EXPOSED_KAFKA_PORT = 9093;
+        static final int DOCKER_EXPOSED_KAFKA_PORT = 9093;
 
-         static KafkaContainer KAFKA_CONTAINER;
+        static KafkaContainer KAFKA_CONTAINER;
         @Container
         static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:5.0.5"))
                 .withExposedPorts(DOCKER_EXPOSED_MONGO_PORT);
@@ -108,6 +159,7 @@ public class MongoDemoApplicationTests {
 
             return kafkaIp + ":" + kafkaBoundPort;
         }
+
         private static void startContainers() {
             Startables.deepStart(Stream.of(mongoDBContainer)).join();
             assertEquals(mongoDBContainer.isRunning(), true);
