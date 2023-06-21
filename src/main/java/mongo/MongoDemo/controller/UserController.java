@@ -40,4 +40,10 @@ public class UserController {
         return new ServerResponse<Void>(null, null);
     }
 
+    @DeleteMapping("/users")
+    public ServerResponse<Void> deleteAllUsers() {
+        userService.deleteAllUsers();
+        return new ServerResponse<Void>(null, null);
+    }
+
 }

@@ -75,4 +75,8 @@ public class UserServiceImpl implements UserService {
 
         return userMapper.toDto(saved);
     }
+
+    public void deleteAllUsers() {
+        userRepository.deleteAll();
+    }
 }

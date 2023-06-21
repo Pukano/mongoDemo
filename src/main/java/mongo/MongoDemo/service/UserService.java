@@ -13,5 +13,6 @@ public interface UserService {
 
     public UserDto updateUser(String id, UserRequest user);
     public UserDto saveUser(UserRequest user);
+    public void deleteAllUsers();
 
 }
