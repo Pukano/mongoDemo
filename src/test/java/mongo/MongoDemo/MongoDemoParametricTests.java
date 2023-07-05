@@ -15,10 +15,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 import org.springframework.context.ApplicationContext;
-import org.testng.annotations.BeforeClass;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -39,10 +37,21 @@ public class MongoDemoParametricTests extends AbstractMongoTest {
             restTemplate = applicationContext.getBean(TestRestTemplate.class);
         }
 
+        @AfterMethod
+        public void cleanUp() {
+            deleteAll();
+        }
+
         @DataProvider(name = "userData")
         public Object[][] userData() {
             return new Object[][] {
                     {"Adam", "Petrovcak", "apor@sdasd.sk", "pass123"},
+                    {"Peter", "Petro", "peter@sdasd.sk", "pass456"},
+                    {null, "Petro", "peter@sdasd.sk", "pass456"},
+                    {"Peter", null, "peter@sdasd.sk", "pass456"},
+                    {"Peter", "Petro", null, "pass456"},
+                    {"Peter", "Petro", "peter@sdasd.sk", null},
+                    {null, null, null, null}
             };
         }
 
@@ -67,7 +76,9 @@ public class MongoDemoParametricTests extends AbstractMongoTest {
                     }, userId).getBody();
             assertNotNull(getUserResponse);
             assertNotNull(getUserResponse.payload());
-            assertEquals("Adam", getUserResponse.payload().firstName());
+            assertEquals(firstName, getUserResponse.payload().firstName());
+            assertEquals(lastName, getUserResponse.payload().lastName());
+            assertEquals(email, getUserResponse.payload().email());
         }
 
     @Test(dataProvider = "userData")
@@ -116,8 +127,6 @@ public class MongoDemoParametricTests extends AbstractMongoTest {
         // Check if the response status is Not Found
         assertEquals("user not found", getDeleteUser.error().message());
 
-        //        Clean up, endpoint delete all
-        deleteAll();
     }
 
     public void deleteAll() {
