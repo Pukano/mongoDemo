@@ -8,6 +8,7 @@ import mongo.MongoDemo.exception.MongoDemoException;
 import mongo.MongoDemo.mapper.UserMapper;
 import mongo.MongoDemo.repository.UserRepository;
 import mongo.MongoDemo.service.UserService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -70,6 +71,9 @@ public class UserServiceImpl implements UserService {
     }
 
     public UserDto saveUser(UserRequest user) {
+        if(StringUtils.isBlank(user.email())){
+            throw new MongoDemoException("user email is blank", "c03");
+        }
         final UserDocument userDocument = userMapper.userRequestToDocument(user);
         final UserDocument saved = userRepository.save(userDocument);
 

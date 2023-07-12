@@ -27,43 +27,50 @@ public class MongoDemoParametricTests extends AbstractMongoTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoDemoParametricTests.class);
 
-        @Autowired
-        private ApplicationContext applicationContext;
+    @Autowired
+    private ApplicationContext applicationContext;
 
-        private TestRestTemplate restTemplate;
+    private TestRestTemplate restTemplate;
 
-        @BeforeClass
-        public void init() {
-            restTemplate = applicationContext.getBean(TestRestTemplate.class);
-        }
+    @BeforeClass
+    public void init() {
+        restTemplate = applicationContext.getBean(TestRestTemplate.class);
+    }
 
-        @AfterMethod
-        public void cleanUp() {
-            deleteAll();
-        }
+    @AfterMethod
+    public void cleanUp() {
+        deleteAll();
+    }
 
-        @DataProvider(name = "userData")
-        public Object[][] userData() {
-            return new Object[][] {
-                    {"Adam", "Petrovcak", "apor@sdasd.sk", "pass123"},
-                    {"Peter", "Petro", "peter@sdasd.sk", "pass456"},
-                    {null, "Petro", "peter@sdasd.sk", "pass456"},
-                    {"Peter", null, "peter@sdasd.sk", "pass456"},
-                    {"Peter", "Petro", null, "pass456"},
-                    {"Peter", "Petro", "peter@sdasd.sk", null},
-                    {null, null, null, null}
-            };
-        }
+    @DataProvider(name = "userData")
+    public Object[][] userData() {
+        return new Object[][]{
+                {"Adam", "Petrovcak", "apor@sdasd.sk", "pass123", null, null},
+                {"Peter", "Petro", "peter@sdasd.sk", "pass456", null, null},
+                {null, "Petro", "peter@sdasd.sk", "pass456", null, null},
+                {"Peter", null, "peter@sdasd.sk", "pass456", null, null},
+                {"Peter", "Petro", null, "pass456", "c03", "user email is blank"},
+                {"Peter", "Petro", "peter@sdasd.sk", null, null, null},
+                {null, null, null, null, "c03", "user email is blank"}
+        };
+    }
 
-        @Test(dataProvider = "userData")
-        public void createUserTest(String firstName, String lastName, String email, String password) {
-            final UserRequest request = new UserRequest(firstName, lastName, email, password);
-            final ParameterizedTypeReference<ServerResponse<UserDto>> responseType = new ParameterizedTypeReference<ServerResponse<UserDto>>() {};
-            final ServerResponse<UserDto> response = restTemplate.exchange("/user", HttpMethod.POST,
-                    new HttpEntity<>(request),
-                    responseType).getBody();
+    @Test(dataProvider = "userData")
+    public void createUserTest(String firstName, String lastName, String email, String password, String errorCode, String errorMessage) {
+        final UserRequest request = new UserRequest(firstName, lastName, email, password);
+        final ParameterizedTypeReference<ServerResponse<UserDto>> responseType = new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+        };
+        final ServerResponse<UserDto> response = restTemplate.exchange("/user", HttpMethod.POST,
+                new HttpEntity<>(request),
+                responseType).getBody();
+
+        if (response.error() != null) {
+            //assers for error
+            Assert.assertEquals(errorMessage, response.error().message());
+            Assert.assertEquals(errorCode, response.error().code());
+
+        } else {
             final UserDto user = response.payload();
-
             Assert.assertNotNull(user);
             Assert.assertEquals(firstName, user.firstName());
 
@@ -80,53 +87,63 @@ public class MongoDemoParametricTests extends AbstractMongoTest {
             assertEquals(lastName, getUserResponse.payload().lastName());
             assertEquals(email, getUserResponse.payload().email());
         }
+    }
 
     @Test(dataProvider = "userData")
-    public void updateUserTest(String firstName, String lastName, String email, String password) {
+    public void updateUserTest(String firstName, String lastName, String email, String password, String errorCode, String errorMessage) {
         //create user for test
         final UserRequest requestCreate = new UserRequest(firstName, lastName, email, password);
-        final ParameterizedTypeReference<ServerResponse<UserDto>> responseTypeCreate = new ParameterizedTypeReference<ServerResponse<UserDto>>() {};
+        final ParameterizedTypeReference<ServerResponse<UserDto>> responseTypeCreate = new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+        };
         final ServerResponse<UserDto> responseCreate = restTemplate.exchange("/user", HttpMethod.POST,
                 new HttpEntity<>(requestCreate), responseTypeCreate).getBody();
-        final UserDto userCreate = responseCreate.payload();
+        if (responseCreate.error() != null) {
+            //assers for error
+            Assert.assertEquals(errorMessage, responseCreate.error().message());
+            Assert.assertEquals(errorCode, responseCreate.error().code());
 
-        Assert.assertNotNull(userCreate);
-        Assert.assertEquals(firstName, userCreate.firstName());
+        } else {
+            final UserDto userCreate = responseCreate.payload();
 
-        String userId = userCreate.id();
+            Assert.assertNotNull(userCreate);
+            Assert.assertEquals(firstName, userCreate.firstName());
 
-        //update user
-        final UserRequest updateRequest = new UserRequest("Joe", "Doe", "jdoe@sdasd.sk", "pass321");
-        final ParameterizedTypeReference<ServerResponse<UserDto>> responseTypeUpdate = new ParameterizedTypeReference<ServerResponse<UserDto>>() {};
-        final ServerResponse<UserDto> responseUpdate = restTemplate.exchange("/user/{id}", HttpMethod.PUT,
-                new HttpEntity<>(updateRequest), responseTypeUpdate, userId).getBody();
+            String userId = userCreate.id();
 
-        //check updated user data
-        assertNotNull(responseUpdate);
-        assertNotNull(responseUpdate.payload());
-        assertEquals("Joe", responseUpdate.payload().firstName());
+            //update user
+            final UserRequest updateRequest = new UserRequest("Joe", "Doe", "jdoe@sdasd.sk", "pass321");
+            final ParameterizedTypeReference<ServerResponse<UserDto>> responseTypeUpdate = new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+            };
+            final ServerResponse<UserDto> responseUpdate = restTemplate.exchange("/user/{id}", HttpMethod.PUT,
+                    new HttpEntity<>(updateRequest), responseTypeUpdate, userId).getBody();
 
-        // Retrieve the updated user by ID
-        ServerResponse<UserDto> getUserResponse = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
-                new ParameterizedTypeReference<ServerResponse<UserDto>>() {}, userId).getBody();
-        assertNotNull(getUserResponse);
-        assertNotNull(getUserResponse.payload());
-        assertEquals("Joe", getUserResponse.payload().firstName());
-        assertEquals("Doe", getUserResponse.payload().lastName());
+            //check updated user data
+            assertNotNull(responseUpdate);
+            assertNotNull(responseUpdate.payload());
+            assertEquals("Joe", responseUpdate.payload().firstName());
 
-        //delete user by id REST
-        ServerResponse<UserDto> deleteUser = restTemplate.exchange("/user/{id}", HttpMethod.DELETE, null,
-                new ParameterizedTypeReference<ServerResponse<UserDto>>() {
-                }, userId).getBody();
+            // Retrieve the updated user by ID
+            ServerResponse<UserDto> getUserResponse = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
+                    new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+                    }, userId).getBody();
+            assertNotNull(getUserResponse);
+            assertNotNull(getUserResponse.payload());
+            assertEquals("Joe", getUserResponse.payload().firstName());
+            assertEquals("Doe", getUserResponse.payload().lastName());
 
-        //get users and check if deleted
-        ServerResponse<UserDto> getDeleteUser = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
-                new ParameterizedTypeReference<ServerResponse<UserDto>>() {
-                }, userId).getBody();
+            //delete user by id REST
+            ServerResponse<UserDto> deleteUser = restTemplate.exchange("/user/{id}", HttpMethod.DELETE, null,
+                    new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+                    }, userId).getBody();
 
-        // Check if the response status is Not Found
-        assertEquals("user not found", getDeleteUser.error().message());
+            //get users and check if deleted
+            ServerResponse<UserDto> getDeleteUser = restTemplate.exchange("/user/{id}", HttpMethod.GET, null,
+                    new ParameterizedTypeReference<ServerResponse<UserDto>>() {
+                    }, userId).getBody();
 
+            // Check if the response status is Not Found
+            assertEquals("user not found", getDeleteUser.error().message());
+        }
     }
 
     public void deleteAll() {
